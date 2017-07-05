@@ -1,0 +1,208 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../paper-input/paper-input.html" />
+
+<script src="../numeral/numeral.js"></script>
+
+<dom-module id="friendly-money-input">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host([focused]) {
+        outline: none;
+      }
+
+      :host([hidden]) {
+        display: none !important;
+      }
+
+      input {
+        position: relative; /* to make a stacking context */
+        outline: none;
+        box-shadow: none;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--paper-input-container-input-color, var(--primary-text-color));
+        -webkit-appearance: none;
+        text-align: inherit;
+        vertical-align: bottom;
+
+        /* Firefox sets a min-width on the input, which can cause layout issues */
+        min-width: 0;
+
+        @apply --paper-font-subhead;
+        @apply --paper-input-container-input;
+      }
+
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        @apply --paper-input-container-input-webkit-spinner;
+      }
+
+      input::-webkit-clear-button {
+        @apply --paper-input-container-input-webkit-clear;
+      }
+
+      input::-webkit-input-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      input:-moz-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      input::-moz-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      input::-ms-clear {
+        @apply --paper-input-container-ms-clear;
+      }
+
+      input:-ms-input-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      label {
+        pointer-events: none;
+      }
+    </style>
+
+    <paper-input-container id="container"
+        no-label-float="[[noLabelFloat]]"
+        always-float-label="[[_computeAlwaysFloatLabel(alwaysFloatLabel,placeholder)]]"
+        auto-validate$="[[autoValidate]]"
+        disabled$="[[disabled]]"
+        invalid="[[invalid]]">
+
+      <slot name="prefix" slot="prefix"></slot>
+
+      <label hidden$="[[!label]]" aria-hidden="true" for="input" slot="label">[[label]]</label>
+
+      <iron-input bind-value="{{displayValue}}" id="input" slot="input"
+	        maxlength$="[[maxlength]]"
+	        allowed-pattern="[0-9\.\,\=\-]"
+	        invalid="{{invalid}}"
+	        validator="[[validator]]">
+	      <input id="nativeInput"
+	        aria-labelledby$="[[_ariaLabelledBy]]"
+	        aria-describedby$="[[_ariaDescribedBy]]"
+	        disabled$="[[disabled]]"
+	        title$="[[title]]"
+	        type$="[[type]]"
+	        pattern$="[[pattern]]"
+	        required$="[[required]]"
+	        autocomplete$="[[autocomplete]]"
+	        autofocus$="[[autofocus]]"
+	        inputmode$="[[inputmode]]"
+	        minlength$="[[minlength]]"
+	        maxlength$="[[maxlength]]"
+	        min$="[[min]]"
+	        max$="[[max]]"
+	        step$="[[step]]"
+	        name$="[[name]]"
+	        placeholder$="[[placeholder]]"
+	        readonly$="[[readonly]]"
+	        list$="[[list]]"
+	        size$="[[size]]"
+	        autocapitalize$="[[autocapitalize]]"
+	        autocorrect$="[[autocorrect]]"
+	        on-change="_onChange"
+	        tabindex$="[[tabIndex]]"
+	        autosave$="[[autosave]]"
+	        results$="[[results]]"
+	        accept$="[[accept]]"
+	        multiple$="[[multiple]]">
+	    </iron-input>
+
+      <slot name="suffix" slot="suffix"></slot>
+
+      <template is="dom-if" if="[[errorMessage]]">
+        <paper-input-error aria-live="assertive" slot="add-on">[[errorMessage]]</paper-input-error>
+      </template>
+
+      <template is="dom-if" if="[[charCounter]]">
+        <paper-input-char-counter slot="add-on"></paper-input-char-counter>
+      </template>
+
+    </paper-input-container>
+  </template>
+
+
+	<script>
+
+
+		class FriendlyMoneyInput extends customElements.get('paper-input') {
+
+
+			static get is() { return 'friendly-money-input'; }
+
+			static get properties() {
+				return {
+					displayValue:{
+						type: String,
+						observer: '_parseDisplayValue'
+					},
+
+					value:{
+						type: Number
+					}
+				}
+			}
+
+			static get observers() {
+				return [
+					'_valueChanged(value)'
+				]
+			}
+
+			connectedCallback() {
+				super.connectedCallback();
+			}
+
+			_parseDisplayValue(displayValue){
+				if(displayValue === undefined || displayValue === null || displayValue === ''){
+					displayValue = 0
+				}
+
+				let value = numeral(displayValue)
+				if(isNaN(value.value())){
+					console.log('not a valid number', value)
+					this.invalid = true
+				}else{
+					this.invalid = false
+					this.value = value.value()
+				}
+			}
+
+			_valueChanged(value){
+				if(!this.displayValue){
+					this.displayValue = numeral(value).format('0,0[.]00')
+				}
+
+				let initialCaretPos = this.$.nativeInput.selectionStart
+				let beforeStr = this.displayValue.substring(0, initialCaretPos)
+				let beforeCount = (this.displayValue.substring(0, initialCaretPos).match(/[^0-9]/g) || []).length
+				
+				if(this.value === null || this.value === undefined){
+					this.displayValue = ''
+				}else{
+					this.displayValue = numeral(value).format('0,0[.]00')
+				}
+
+				let afterCount = (this.displayValue.substring(0, initialCaretPos).match(/[^0-9]/g) || []).length
+				let newCaretPos = initialCaretPos + (afterCount - beforeCount)
+
+				this.$.nativeInput.selectionStart = newCaretPos
+				this.$.nativeInput.selectionEnd = newCaretPos
+			}
+		}
+
+		customElements.define(FriendlyMoneyInput.is, FriendlyMoneyInput);
+	</script>
+</dom-module>
