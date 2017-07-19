@@ -86,7 +86,7 @@
 
       <iron-input bind-value="{{displayValue}}" id="input" slot="input"
 	        maxlength$="[[maxlength]]"
-	        allowed-pattern="[0-9\.\,\=\-]"
+	        allowed-pattern="[[allowedPattern]]"
 	        invalid="{{invalid}}"
 	        validator="[[validator]]">
 	      <input id="nativeInput"
@@ -151,7 +151,22 @@
 
 					value:{
 						type: Number
-					}
+					},
+
+					pattern: {
+						type: String,
+						value: '^[-+]?[0-9,]*\.?[0-9]+$',
+					},
+
+					allowedPattern: {
+						type: String,
+						value: '[-+.,0-9]',
+					},
+
+					autoValidate: {
+						type: Boolean,
+						value: true,
+					},
 				}
 			}
 
@@ -170,9 +185,9 @@
 					displayValue = 0
 				}
 
-				let value = numeral(displayValue)
+				const value = numeral(displayValue)
+
 				if(isNaN(value.value())){
-					console.log('not a valid number', value)
 					this.invalid = true
 				}else{
 					this.invalid = false
